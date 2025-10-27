@@ -82,32 +82,7 @@ tfoot td{background:#f2f6ff;font-weight:800;padding:8px}
   </div>
 </main>
 <script>
-(()=>{const KEY="citostrack_v5_local";const KEY_LOGO="citostrack_logo_v5_local";
-const tbody=document.getElementById("tbody");const tPrep=document.getElementById("tPrep");
-const tAdm=document.getElementById("tAdm");const tMin=document.getElementById("tMin");
-const tIcc=document.getElementById("tIcc");const logoInput=document.getElementById("i_logo");
-const logoPreview=document.getElementById("logoPreview");const uploader=document.querySelector(".uploader");
-let rows=[];let logoB64=localStorage.getItem(KEY_LOGO)||"";if(logoB64){logoPreview.src=logoB64;logoPreview.style.display="block";uploader.style.display="none";}
-const fmt=(n,dec=2)=>(!isFinite(n)?"0.00":(Math.round(n*1e2)/1e2).toFixed(dec));
-const toNum=v=>isFinite(parseFloat(v))?parseFloat(v):0;
-function isoWeekFromDateStr(d){if(!d)return"";const [y,m,dd]=d.split("-").map(Number);if(!y||!m||!dd)return"";const date=new Date(Date.UTC(y,m-1,dd));const dayNum=date.getUTCDay()||7;date.setUTCDate(date.getUTCDate()+4-dayNum);const yearStart=new Date(Date.UTC(date.getUTCFullYear(),0,1));return String(Math.ceil(((date-yearStart)/86400000+1)/7));}
-const emptyRow=()=>({sel:false,nombre:"",rut:"",fecha:"",semana:"",prep:"",adm:"",minutos:"",icc:"0.00",obs:""});
-const save=()=>localStorage.setItem(KEY,JSON.stringify(rows));
-function load(){const raw=localStorage.getItem(KEY);if(raw){try{rows=JSON.parse(raw)||[]}catch{rows=[]}}if(!rows.length)rows=[emptyRow()];render();}
-function addRow(){rows.push(emptyRow());render();save();}
-function removeSelected(){rows=rows.filter(r=>!r.sel);if(!rows.length)rows=[emptyRow()];render();save();}
-function recalcAndPaint(){let P=0,A=0,M=0;rows.forEach((r,i)=>{const prep=toNum(r.prep),adm=toNum(r.adm),min=toNum(r.minutos);P+=prep;A+=adm;M+=min;r.icc=min>0?fmt((prep+adm)/min):"0.00";const rowEl=tbody.rows[i];if(rowEl&&rowEl.cells[8])rowEl.cells[8].textContent=r.icc;});tPrep.textContent=P;tAdm.textContent=A;tMin.textContent=M;tIcc.textContent=M>0?fmt((P+A)/M):"0.00";}
-function render(){tbody.innerHTML="";rows.forEach(r=>{const tr=document.createElement("tr");
-const makeInput=(prop,type="text",align="left")=>{const td=document.createElement("td");const el=document.createElement("input");el.type=type;el.value=r[prop]||"";el.style.textAlign=align;el.oninput=e=>{r[prop]=e.target.value;recalcAndPaint();save();};td.appendChild(el);return td;};
-const tdSel=document.createElement("td");const chk=document.createElement("input");chk.type="checkbox";chk.checked=r.sel;chk.onchange=e=>{r.sel=e.target.checked;save();};tdSel.appendChild(chk);tr.appendChild(tdSel);
-tr.appendChild(makeInput("nombre"));tr.appendChild(makeInput("rut"));
-const tdFecha=makeInput("fecha","date","center");tdFecha.firstChild.oninput=e=>{r.fecha=e.target.value;r.semana=isoWeekFromDateStr(r.fecha);tr.querySelector("[data-week]").value=r.semana;save();};tr.appendChild(tdFecha);
-const tdSemana=makeInput("semana","text","center");tdSemana.firstChild.readOnly=true;tdSemana.firstChild.setAttribute("data-week","1");tr.appendChild(tdSemana);
-tr.appendChild(makeInput("prep","number","right"));tr.appendChild(makeInput("adm","number","right"));tr.appendChild(makeInput("minutos","number","right"));
-const tdIcc=document.createElement("td");tdIcc.textContent=r.icc||"0.00";tdIcc.style.fontWeight="bold";tr.appendChild(tdIcc);
-const tdObs=document.createElement("td");const txt=document.createElement("textarea");txt.value=r.obs||"";txt.oninput=e=>{r.obs=e.target.value;save();};tdObs.appendChild(txt);tr.appendChild(tdObs);
-tbody.appendChild(tr);});recalcAndPaint();}
-logoInput.addEventListener("change",e=>{const f=e.target.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{logoB64=rd.result;localStorage.setItem(KEY_LOGO,logoB64);logoPreview.src=logoB64;logoPreview.style.display="block";uploader.style.display="none";};rd.readAsDataURL(f);});
+
 document.getElementById("btnAdd").onclick=addRow;
 document.getElementById("btnRem").onclick=removeSelected;
 document.getElementById("btnLimpiar").onclick=()=>{if(confirm("¿Borrar todos los registros?")){rows=[emptyRow()];save();render();}};
