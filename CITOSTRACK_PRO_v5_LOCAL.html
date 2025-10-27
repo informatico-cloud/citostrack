@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CITOSTRACK PRO v5 (uso local)</title>
+<style>
+:root{
+  --brand:#155eef;--brand-600:#134edb;--ink:#0b1220;--muted:#5b6575;--ui:#f5f7fb;--card:#ffffff;--border:#e4e8f1;--danger:#ef4444;--accent:#0ea5e9;--ok:#16a34a;--shadow:0 10px 30px rgba(10,30,70,.08);
+}
+body{margin:0;background:var(--ui);color:var(--ink);font-family:Arial,Helvetica,sans-serif}
+.appbar{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--border);box-shadow:0 4px 20px rgba(0,0,0,.04);}
+.appbar-inner{max-width:1200px;margin:0 auto;padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:14px}
+.brand h1{margin:0;font-size:22px;letter-spacing:1px;font-weight:900;color:var(--brand)}
+.logoPreview{max-height:40px;max-width:140px;object-fit:contain;display:none}
+.uploader{display:inline-flex;align-items:center;gap:10px;padding:8px 12px;background:#eef2ff;color:#1b2b6a;border:1px dashed #c8d1ff;border-radius:10px;cursor:pointer}
+.uploader:hover{background:#e2e8ff}
+.container{max-width:1200px;margin:18px auto;padding:0 18px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow)}
+.card-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{margin:0;font-size:15px;color:#1b2648;font-weight:800}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer;background:var(--brand);color:#fff}
+.btn.alt{background:var(--accent)}.btn.danger{background:var(--danger)}.btn.ok{background:var(--ok)}.btn.ghost{background:#eef2ff;color:#1b2b6a}
+.btn:hover{background:var(--brand-600)}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:960px}
+th,td{border:1px solid var(--border);font-size:13px}
+th{background:#f8faff;font-weight:800;padding:10px;text-align:center}
+td{background:#fff;padding:4px}
+tbody tr:nth-child(even) td{background:#fbfcff}
+tfoot td{background:#f2f6ff;font-weight:800;padding:8px}
+.hint{text-align:center;color:var(--muted);font-size:12px;margin:10px 0}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="appbar-inner">
+    <div class="brand">
+      <img id="logoPreview" class="logoPreview" alt="Logo">
+      <label class="uploader">
+        <input id="i_logo" type="file" accept="image/png,image/jpeg" style="display:none">
+        🖼️ Cargar logo institucional
+      </label>
+      <div>
+        <h1>CITOSTRACK</h1>
+        <small>ICC = (Preparaciones + Administraciones) / Tiempo (min)</small>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="btnLimpiar">Limpiar</button>
+      <button class="btn alt" id="btnGenerar">Exportar PDF</button>
+    </div>
+  </div>
+</header>
+<main class="container">
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Registro de funcionarios</h3>
+      <div class="actions">
+        <button class="btn ok" id="btnAdd">+ Nuevo registro</button>
+        <button class="btn danger" id="btnRem">– Eliminar seleccionados</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="table-wrap">
+        <table id="tabla">
+          <thead>
+            <tr>
+              <th>Sel</th><th>Nombre</th><th>RUT</th><th>Fecha evaluación</th><th>Semana</th><th># Preparaciones</th><th># Administraciones</th><th>Tiempo (min)</th><th>ICC</th><th>Observaciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+          <tfoot>
+            <tr><td colspan="5" style="text-align:right">Totales:</td><td id="tPrep">0</td><td id="tAdm">0</td><td id="tMin">0</td><td id="tIcc">0.00</td><td></td></tr>
+          </tfoot>
+        </table>
+      </div>
+      <p class="hint">La <b>Semana</b> se calcula automáticamente según la fecha, y el <b>ICC</b> se actualiza en tiempo real.</p>
+    </div>
+  </div>
+</main>
+<script>
+(()=>{const KEY="citostrack_v5_local";const KEY_LOGO="citostrack_logo_v5_local";
+const tbody=document.getElementById("tbody");const tPrep=document.getElementById("tPrep");
+const tAdm=document.getElementById("tAdm");const tMin=document.getElementById("tMin");
+const tIcc=document.getElementById("tIcc");const logoInput=document.getElementById("i_logo");
+const logoPreview=document.getElementById("logoPreview");const uploader=document.querySelector(".uploader");
+let rows=[];let logoB64=localStorage.getItem(KEY_LOGO)||"";if(logoB64){logoPreview.src=logoB64;logoPreview.style.display="block";uploader.style.display="none";}
+const fmt=(n,dec=2)=>(!isFinite(n)?"0.00":(Math.round(n*1e2)/1e2).toFixed(dec));
+const toNum=v=>isFinite(parseFloat(v))?parseFloat(v):0;
+function isoWeekFromDateStr(d){if(!d)return"";const [y,m,dd]=d.split("-").map(Number);if(!y||!m||!dd)return"";const date=new Date(Date.UTC(y,m-1,dd));const dayNum=date.getUTCDay()||7;date.setUTCDate(date.getUTCDate()+4-dayNum);const yearStart=new Date(Date.UTC(date.getUTCFullYear(),0,1));return String(Math.ceil(((date-yearStart)/86400000+1)/7));}
+const emptyRow=()=>({sel:false,nombre:"",rut:"",fecha:"",semana:"",prep:"",adm:"",minutos:"",icc:"0.00",obs:""});
+const save=()=>localStorage.setItem(KEY,JSON.stringify(rows));
+function load(){const raw=localStorage.getItem(KEY);if(raw){try{rows=JSON.parse(raw)||[]}catch{rows=[]}}if(!rows.length)rows=[emptyRow()];render();}
+function addRow(){rows.push(emptyRow());render();save();}
+function removeSelected(){rows=rows.filter(r=>!r.sel);if(!rows.length)rows=[emptyRow()];render();save();}
+function recalcAndPaint(){let P=0,A=0,M=0;rows.forEach((r,i)=>{const prep=toNum(r.prep),adm=toNum(r.adm),min=toNum(r.minutos);P+=prep;A+=adm;M+=min;r.icc=min>0?fmt((prep+adm)/min):"0.00";const rowEl=tbody.rows[i];if(rowEl&&rowEl.cells[8])rowEl.cells[8].textContent=r.icc;});tPrep.textContent=P;tAdm.textContent=A;tMin.textContent=M;tIcc.textContent=M>0?fmt((P+A)/M):"0.00";}
+function render(){tbody.innerHTML="";rows.forEach(r=>{const tr=document.createElement("tr");
+const makeInput=(prop,type="text",align="left")=>{const td=document.createElement("td");const el=document.createElement("input");el.type=type;el.value=r[prop]||"";el.style.textAlign=align;el.oninput=e=>{r[prop]=e.target.value;recalcAndPaint();save();};td.appendChild(el);return td;};
+const tdSel=document.createElement("td");const chk=document.createElement("input");chk.type="checkbox";chk.checked=r.sel;chk.onchange=e=>{r.sel=e.target.checked;save();};tdSel.appendChild(chk);tr.appendChild(tdSel);
+tr.appendChild(makeInput("nombre"));tr.appendChild(makeInput("rut"));
+const tdFecha=makeInput("fecha","date","center");tdFecha.firstChild.oninput=e=>{r.fecha=e.target.value;r.semana=isoWeekFromDateStr(r.fecha);tr.querySelector("[data-week]").value=r.semana;save();};tr.appendChild(tdFecha);
+const tdSemana=makeInput("semana","text","center");tdSemana.firstChild.readOnly=true;tdSemana.firstChild.setAttribute("data-week","1");tr.appendChild(tdSemana);
+tr.appendChild(makeInput("prep","number","right"));tr.appendChild(makeInput("adm","number","right"));tr.appendChild(makeInput("minutos","number","right"));
+const tdIcc=document.createElement("td");tdIcc.textContent=r.icc||"0.00";tdIcc.style.fontWeight="bold";tr.appendChild(tdIcc);
+const tdObs=document.createElement("td");const txt=document.createElement("textarea");txt.value=r.obs||"";txt.oninput=e=>{r.obs=e.target.value;save();};tdObs.appendChild(txt);tr.appendChild(tdObs);
+tbody.appendChild(tr);});recalcAndPaint();}
+logoInput.addEventListener("change",e=>{const f=e.target.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{logoB64=rd.result;localStorage.setItem(KEY_LOGO,logoB64);logoPreview.src=logoB64;logoPreview.style.display="block";uploader.style.display="none";};rd.readAsDataURL(f);});
+document.getElementById("btnAdd").onclick=addRow;
+document.getElementById("btnRem").onclick=removeSelected;
+document.getElementById("btnLimpiar").onclick=()=>{if(confirm("¿Borrar todos los registros?")){rows=[emptyRow()];save();render();}};
+document.getElementById("btnGenerar").onclick=()=>{recalcAndPaint();save();window.print();};
+load();})();
+</script>
+</body></html>
