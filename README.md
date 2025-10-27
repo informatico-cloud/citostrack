@@ -1,4 +1,4 @@
-git clone https://github.com/tuusuario/mi-pagina.git
+git clone https://github.com/informatico-cloud/citotrack.git
 cd mi-pagina
 git add .
 git commit -m "Subo mi página"
